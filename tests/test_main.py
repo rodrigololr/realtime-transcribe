@@ -93,6 +93,8 @@ def test_build_components_raises_friendly_error_when_parec_missing(capsys: pytes
     assert "parec" in msg
     assert "pulseaudio-utils" in msg
     assert "sudo apt install" in msg
+    # Should also mention the fix-deps.sh script as alternative
+    assert "fix-deps" in msg or "consertador" in msg
 
 
 def test_run_app_runs_pipeline_and_drains_to_overlay() -> None:

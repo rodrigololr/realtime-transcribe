@@ -66,8 +66,11 @@ def build_components(cfg: Config) -> Components:
         sys.stderr.write(
             "\n[captions] ERRO: o binário `parec` não foi encontrado no PATH.\n"
             "[captions] Ele vem do pacote `pulseaudio-utils`.\n\n"
-            "[captions] Para instalar:\n"
-            "    sudo apt update && sudo apt install -y pulseaudio-utils libpulse-dev\n\n"
+            "[captions] Dica: se `apt install` falhar por PPAs quebrados (404, sem\n"
+            "[captions] Release, arch mismatch), rode o consertador automático:\n"
+            "[captions]   sudo ./scripts/fix-deps.sh\n\n"
+            "[captions] Ou instale manualmente:\n"
+            "[captions]   sudo apt install -y pulseaudio-utils libpulse-dev python3-tk\n\n"
             "[captions] Depois rode `./run.sh` de novo.\n"
         )
         sys.exit(2)

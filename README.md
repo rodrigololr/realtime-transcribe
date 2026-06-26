@@ -71,15 +71,29 @@ PulseAudio .monitor → AudioCapture → VAD → Whisper (CUDA) → Dedup → Ov
 
 ## Troubleshooting
 
-### `parec: command not found`
+### `parec: command not found` / apt install fails with 404
 
-You need `pulseaudio-utils`:
+Se `apt install` falha porque teu sistema tem PPAs quebrados (404, "sem Release", arch mismatch), rode o consertador automático:
 
 ```bash
-sudo apt install -y pulseaudio-utils libpulse-dev
+sudo ./scripts/fix-deps.sh
 ```
 
-Verify: `which parec` should return `/usr/bin/parec`.
+Ele detecta os PPAs problemáticos, renomeia pra `.disabled` (reversível), e instala `pulseaudio-utils`, `libpulse-dev`, `python3-tk`.
+
+**Para ver o que ele faria sem aplicar:**
+
+```bash
+sudo ./scripts/fix-deps.sh --dry-run
+```
+
+**Manual** (se preferir não rodar o script):
+
+```bash
+sudo apt install -y pulseaudio-utils libpulse-dev python3-tk
+```
+
+Verify: `which parec` deve retornar `/usr/bin/parec`.
 
 ### `No PulseAudio source found` / `Found N sinks but none has a .monitor source`
 

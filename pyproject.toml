@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "captions"
+version = "0.1.0"
+description = "Real-time audio transcriber overlay for Linux"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "antonio" }]
+keywords = ["transcription", "whisper", "linux", "pulseaudio", "captions"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications",
+  "Intended Audience :: End Users/Desktop",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Multimedia :: Sound/Audio :: Speech",
+]
+
+# Core runtime deps installed via `pip install -e .` (lightweight, no torch).
+dependencies = [
+  "pulsectl>=23.5.1",
+  "sounddevice>=0.4.6",
+  "numpy>=1.24,<3.0",
+  "pynput>=1.7.6",
+]
+
+# Heavy deps (whisper + torch + cuda) — installed separately by run.sh.
+# Keeping them optional lets `pip install -e .[dev]` complete fast for CI / TDD.
+[project.optional-dependencies]
+stt = [
+  "faster-whisper>=1.0.0",
+  "silero-vad>=5.1",
+  "torch>=2.0; sys_platform == 'linux'",
+]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "pytest-mock>=3.12",
+  "ruff>=0.3",
+  "mypy>=1.8",
+]
+all = ["captions[stt,dev]"]
+
+[project.scripts]
+captions = "captions.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+captions = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true

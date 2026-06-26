@@ -16,6 +16,7 @@ import contextlib
 import dataclasses
 import logging
 import queue
+import shutil
 import signal
 import sys
 import threading
@@ -59,6 +60,17 @@ def build_components(cfg: Config) -> Components:
         logger.info("Auto-detected monitor source: %s", source_name)
 
     # 2. Audio capture
+    if shutil.which("parec") is None:
+        # Friendly exit BEFORE instantiating AudioCapture (which would also raise).
+        # Points the user at the exact apt command to fix it.
+        sys.stderr.write(
+            "\n[captions] ERRO: o binário `parec` não foi encontrado no PATH.\n"
+            "[captions] Ele vem do pacote `pulseaudio-utils`.\n\n"
+            "[captions] Para instalar:\n"
+            "    sudo apt update && sudo apt install -y pulseaudio-utils libpulse-dev\n\n"
+            "[captions] Depois rode `./run.sh` de novo.\n"
+        )
+        sys.exit(2)
     capture = AudioCapture(
         source_name=source_name,
         sample_rate=16000,

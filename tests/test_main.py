@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from captions.core.config import Config
 from captions.main import build_components, run_app, run_list_sources
 
@@ -67,6 +69,30 @@ def test_build_components_explicit_source() -> None:
         probe.assert_not_called()
 
     assert components.source_name == "explicit.monitor"
+
+
+def test_build_components_raises_friendly_error_when_parec_missing(capsys: pytest.CaptureFixture[str]) -> None:
+    """If `parec` is missing, error must tell the user exactly what to install."""
+    cfg = _stub_config(source="test.monitor", no_overlay=True)
+    with (
+        patch("captions.main.AudioCapture") as cap_cls,
+        patch("captions.main.WhisperEngine") as whi_cls,
+        patch("captions.main.shutil.which", return_value=None),
+    ):
+        cap_cls.return_value = MagicMock()
+        whi_cls.return_value = MagicMock()
+
+        with pytest.raises(SystemExit) as exc_info:
+            build_components(cfg)
+
+    # Exit code should be non-zero (2 = our chosen code for missing prereq)
+    assert exc_info.value.code == 2
+    # Stderr must contain actionable info
+    captured = capsys.readouterr()
+    msg = captured.err.lower()
+    assert "parec" in msg
+    assert "pulseaudio-utils" in msg
+    assert "sudo apt install" in msg
 
 
 def test_run_app_runs_pipeline_and_drains_to_overlay() -> None:

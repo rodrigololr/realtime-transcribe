@@ -41,26 +41,33 @@ require_root() {
 # 1. Detecta PPAs quebrados rodando `apt-get update` e capturando warnings
 # ----------------------------------------------------------------------
 detect_broken_sources() {
-    # Estratégia em 2 passos:
-    #   1. Identifica QUAIS sources falharam (linhas de erro/warning do apt)
-    #   2. Mapeia cada uma → arquivo .list correspondente
+    # Estratégia: rodar apt-get update 2x. Primeira vez pode falhar em paralelo
+    # e não emitir todos os erros; segunda é mais determinística.
+    # Captura saída mesmo se exit code != 0.
 
     local output
     output="$(apt-get update 2>&1)" || output="$(apt-get update 2>&1)" || true
 
-    # Passo 1: extrai URLs apenas das linhas de erro.
-    # Heurística: linha é erro se começa com "E:", "W:", "Erro:", "Err:",
-    # contém "404", "does not have", "não tem", "não tem suporte",
-    # ou "Release" + algo errado.
+    # DEBUG: dump raw output pra diagnóstico
+    if [[ -n "${FIX_DEPS_DEBUG:-}" ]]; then
+        printf '=== RAW APT OUTPUT (%s linhas) ===\n' "$(printf '%s\n' "$output" | wc -l)" >&2
+        printf '%s\n' "$output" >&2
+        printf '=== END RAW ===\n' >&2
+    fi
+
+    # Passo 1: extrai URLs das linhas de erro (EN + PT)
     local broken_urls=()
     while IFS= read -r url; do
         broken_urls+=("$url")
     done < <(printf '%s\n' "$output" \
-        | grep -E '^(E|W|Erro|Err):| 404 |does not have a Release|não tem|não tem suporte' \
+        | grep -E '(^E:|^W:|^Erro:|^Err:|^N: | 404 |does not have|no Release file|não tem|não tem suporte|não tem um arquivo Release)' \
         | grep -oE 'https?://[^ ]+' \
         | sort -u || true)
 
     if [[ ${#broken_urls[@]} -eq 0 ]]; then
+        if [[ -z "${FIX_DEPS_DEBUG:-}" ]]; then
+            warn "nenhuma URL quebrada identificada (rode com FIX_DEPS_DEBUG=1 pra ver o output do apt)"
+        fi
         return 0
     fi
 
@@ -69,7 +76,6 @@ detect_broken_sources() {
     local matches=()
     local url
     for url in "${broken_urls[@]}"; do
-        # Normaliza: tira scheme, colapsa /, tira /ubuntu trailing
         local norm
         norm="$(printf '%s' "$url" | sed -E 's|^https?://||; s|/+|/|g; s|/$||; s|/ubuntu$||')"
         for file in "$sources_dir"/*.list; do
